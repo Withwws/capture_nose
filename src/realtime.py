@@ -18,6 +18,10 @@ detection_handler = DetectionHandler()
 logger.print_banner()
 logger.realtime("Initializing real-time sign language detection...")
 
+# Setup device (CUDA if available, else CPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+logger.info(f"Using device: {device}")
+
 transforms = A.Compose(
         [   
             A.Resize(224,224),
@@ -29,6 +33,7 @@ transforms = A.Compose(
 model = DETR(num_classes=3)
 model.eval()
 model.load_pretrained('pretrained/4426_model.pt')
+model = model.to(device)  # Move model to GPU/CPU
 CLASSES = get_classes() 
 COLORS = get_colors() 
 
@@ -48,7 +53,8 @@ while cap.isOpened():
     # Time the inference
     inference_start = time.time()
     transformed = transforms(image=frame)
-    result = model(torch.unsqueeze(transformed['image'], dim=0))
+    input_tensor = torch.unsqueeze(transformed['image'], dim=0).to(device)  # Move to GPU/CPU
+    result = model(input_tensor)
     inference_time = (time.time() - inference_start) * 1000  # Convert to ms
 
     probabilities = result['pred_logits'].softmax(-1)[:,:,:-1] 

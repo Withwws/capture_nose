@@ -16,14 +16,20 @@ detection_handler = DetectionHandler()
 
 logger.print_banner()
 
+# Setup device (CUDA if available, else CPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+logger.info(f"Using device: {device}")
+
 num_classes = 3
 test_dataset = DETRData('data/test', train=False) 
 test_dataloader = DataLoader(test_dataset, shuffle=True, batch_size=4, drop_last=True) 
 model = DETR(num_classes=num_classes)
 model.eval()
 model.load_pretrained('pretrained/4426_model.pt')
+model = model.to(device)  # Move model to GPU/CPU
 
 X, y = next(iter(test_dataloader))
+X = X.to(device)  # Move input to GPU/CPU
 
 logger.test("Running inference on test batch...")
 

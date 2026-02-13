@@ -41,6 +41,7 @@ if __name__ == '__main__':
     weights= {'class_weighting': 1, 'bbox_weighting': 5, 'giou_weighting': 2}
     matcher = HungarianMatcher(weights)
     criterion = DETRLoss(num_classes=num_classes, matcher=matcher, weight_dict=weights, eos_coef=0.1)
+    criterion = criterion.to(device)  # Move criterion to GPU/CPU
 
     train_batches = len(train_dataloader)
     test_batches = len(test_dataloader)

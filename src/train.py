@@ -15,6 +15,13 @@ if __name__ == '__main__':
     logger = get_logger("training")
     logger.print_banner()
     
+    # Setup device (CUDA if available, else CPU)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info(f"Using device: {device}")
+    if torch.cuda.is_available():
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+        logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    
     train_dataset = DETRData('data/train') 
     train_dataloader = DataLoader(train_dataset, batch_size=4, collate_fn=stacker, drop_last=True) 
 
@@ -24,6 +31,7 @@ if __name__ == '__main__':
     num_classes = 3 
     model = DETR(num_classes=num_classes)
     model.load_pretrained('pretrained/4426_model.pt')
+    model = model.to(device)  # Move model to GPU/CPU
     model.log_model_info()
     model.train() 
 
@@ -62,6 +70,9 @@ if __name__ == '__main__':
                 # Create progress bar for current epoch
                 for batch_idx, batch in enumerate(train_dataloader): 
                     X, y = batch
+                    # Move data to device
+                    X = X.to(device)
+                    y = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in y]
                     try: 
                         yhat = model(X) 
                         yhat_classes = yhat['pred_logits'] 
@@ -100,6 +111,9 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     for batch_idx, batch in enumerate(test_dataloader):
                         X, y = batch
+                        # Move data to device
+                        X = X.to(device)
+                        y = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in y]
                         yhat = model(X)
                         loss_dict = criterion(yhat, y) 
                         weight_dict = criterion.weight_dict
